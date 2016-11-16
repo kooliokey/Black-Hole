@@ -214,11 +214,83 @@ class QuizzerWindow(tk.Frame):
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
         self.controller = controller
-        label = tk.Label(self, text="QuizzerWindow")
-        label.pack(side="top", fill="x", pady=10)
+        
+        #### Get our fractions
+        # TODO: Change this to randomly generate them with another function
+        self.numer1 = 2
+        self.denom1 = 3
+        self.numer2 = 4
+        self.denom2 = 3
+        
+        # Title for window and spacer after
+        tk.Label(self, text="Quizzer Window").pack()
+        tk.Label(self, text="").pack()
+        
+        # Create the main frame for our equation and answer
+        mainFrame = tk.Frame(self)
+        mainFrame.pack()
+        
+        # First fraction
+        label = tk.Label(self, text="{:d}/{:d}".format(self.numer1,self.denom1))
+        label.grid(row=2, column=0, in_=mainFrame)
+        
+        # List of operators to choose
+        self.operator_input = tk.Listbox(self, height=4 , width=3)
+        self.operator_input.grid(row=2, column=1, in_=mainFrame)
+        self.operator_input.insert(1,"+")
+        self.operator_input.insert(2,"-")
+        self.operator_input.insert(3,"*")
+        self.operator_input.insert(4,"/")
+        
+        # Second fraction
+        label = tk.Label(self, text="{:d}/{:d}".format(self.numer2,self.denom2))
+        label.grid(row=2, column=2, in_=mainFrame)
+        
+        # Equal sign
+        label = tk.Label(self, text="=")
+        label.grid(row=2, column=3, in_=mainFrame)
+        
+        ### Answer views
+        # Answer numerator
+        self.numerator = tk.Entry(self, width=5)
+        self.numerator.grid(row=2, column=4, in_=mainFrame)
+        
+        # Answer fraction sign
+        label = tk.Label(self, text="/", borderwidth=2)
+        label.grid(row=2,column=5, in_=mainFrame)
+        
+        # Answer denominator
+        self.denominator = tk.Entry(self, width=5)
+        self.denominator.grid(row=2, column=6, in_=mainFrame)
+        
+        #### Final buttons, with spacer above
+        # Answer submit button
+        tk.Label(self, text="").pack()
+        button = tk.Button(self, text="Submit Answer",
+                           command=self.QuizzerSubmitAnswer)
+        button.pack()
+
+        # Put the button to go back to main window
         button = tk.Button(self, text="MainWindow",
                            command=lambda: controller.show_frame("MainWindow"))
         button.pack()
+    
+    def QuizzerSubmitAnswer(self):
+        print("Submit the answer")
+        
+        try:
+            selectedOperator = self.operator_input.get(self.operator_input.curselection())
+            ansNumer = int(self.numerator.get())
+            ansDenom = int(self.denominator.get())
+            
+            # TODO: Check if the answer is correct and display correct answer along with CORRECT/WRONG message
+            print("{:d}/{:d} {:s} {:d}/{:d} = {:d} / {:d}".format(self.numer1,self.denom1,selectedOperator, self.numer2, self.denom2, ansNumer, ansDenom))
+        except ValueError:
+            ErrorboxGeneratpr("Error: Please enter only integers for your answer.")
+        except tk.TclError:
+            ErrorboxGeneratpr("Error: Please select an operator.")
+        
+        
 
 class ViewResultsWindow(tk.Frame):
 
