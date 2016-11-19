@@ -1,5 +1,7 @@
 import tkinter as tk
 import operator
+from fractions import Fraction
+import random
 
 # Set Operators for use in Solver window
 ops = {"+": operator.add, "-": operator.sub, "*": operator.mul, "/": operator.truediv}
@@ -215,13 +217,6 @@ class QuizzerWindow(tk.Frame):
         tk.Frame.__init__(self, parent)
         self.controller = controller
         
-        #### Get our fractions
-        # TODO: Change this to randomly generate them with another function
-        self.numer1 = 2
-        self.denom1 = 3
-        self.numer2 = 4
-        self.denom2 = 3
-        
         # Title for window and spacer after
         tk.Label(self, text="Quizzer Window").pack()
         tk.Label(self, text="").pack()
@@ -231,8 +226,8 @@ class QuizzerWindow(tk.Frame):
         mainFrame.pack()
         
         # First fraction
-        label = tk.Label(self, text="{:d}/{:d}".format(self.numer1,self.denom1))
-        label.grid(row=2, column=0, in_=mainFrame)
+        self.firstFraction = tk.Label(self, text="")
+        self.firstFraction.grid(row=2, column=0, in_=mainFrame)
         
         # List of operators to choose
         self.operator_input = tk.Listbox(self, height=4 , width=3)
@@ -243,8 +238,8 @@ class QuizzerWindow(tk.Frame):
         self.operator_input.insert(4,"/")
         
         # Second fraction
-        label = tk.Label(self, text="{:d}/{:d}".format(self.numer2,self.denom2))
-        label.grid(row=2, column=2, in_=mainFrame)
+        self.secondFraction = tk.Label(self, text="")
+        self.secondFraction.grid(row=2, column=2, in_=mainFrame)
         
         # Equal sign
         label = tk.Label(self, text="=")
@@ -263,6 +258,10 @@ class QuizzerWindow(tk.Frame):
         self.denominator = tk.Entry(self, width=5)
         self.denominator.grid(row=2, column=6, in_=mainFrame)
         
+        ## Results Label
+        self.resultsLabel = tk.Label(self, text="")
+        self.resultsLabel.grid(row=3, column=0, columnspan=6, in_=mainFrame)
+        
         #### Final buttons, with spacer above
         # Answer submit button
         tk.Label(self, text="").pack()
@@ -274,23 +273,65 @@ class QuizzerWindow(tk.Frame):
         button = tk.Button(self, text="MainWindow",
                            command=lambda: controller.show_frame("MainWindow"))
         button.pack()
+        
+        #### Get our fractions
+        self.QuizzerSetRandomEquation()
+        
+    def QuizzerSetRandomEquation(self):
+        # TODO: How large should these get? Isn't the program meant to be for kids learning fractions....figured it shouldn't be too high
+        self.numer1 = random.randint(1,20)
+        self.denom1 = random.randint(1,20)
+        
+        self.numer2 = random.randint(1,20)
+        self.denom2 = random.randint(1,20)
+        
+        self.frac1 = Fraction(self.numer1,self.denom1)
+        self.frac2 = Fraction(self.numer2,self.denom2)
+        
+        self.firstFraction['text'] = self.frac1
+        self.secondFraction['text'] = self.frac2
     
     def QuizzerSubmitAnswer(self):
-        print("Submit the answer")
-        
         try:
+            # Get all our data from the user's selections and put answer into fraction
             selectedOperator = self.operator_input.get(self.operator_input.curselection())
             ansNumer = int(self.numerator.get())
             ansDenom = int(self.denominator.get())
+            givenAnswer = Fraction("{0}/{1}".format(ansNumer, ansDenom))
             
-            # TODO: Check if the answer is correct and display correct answer along with CORRECT/WRONG message
-            print("{:d}/{:d} {:s} {:d}/{:d} = {:d} / {:d}".format(self.numer1,self.denom1,selectedOperator, self.numer2, self.denom2, ansNumer, ansDenom))
+            # Calculate the correct answer
+            operator = ops[selectedOperator]
+            correctAnswer = operator(self.frac1,self.frac2)
+            
+            # If they match then they at least get 0.5 points. Just need to check if they match exactly
+            # TODO: If an answer is supposed to be reduced to 2, should it be required to enter 2/1 for full points or should 6/3 be accepted as well?
+            resultMessage = ""
+            points = 0.0
+            if givenAnswer == correctAnswer:
+                if ansNumer == correctAnswer.numerator and ansDenom == correctAnswer.denominator:
+                    resultMessage = "Correct - good job!"
+                    points = 1
+                else:
+                    resultMessage = "Partially Correct. Answer needs to be reduced. Correct answer is {0}".format(correctAnswer)
+                    points = 0.5
+            else:
+                resultMessage = "Incorrect. Correct answer is {0}. Try another one!".format(correctAnswer)
+                
+            self.resultsLabel['text'] = resultMessage
+            self.QuizzerSaveResultsToDatabase(selectedOperator, points)
+            
+            # Now reset to a new equation
+            self.numerator['text'] = ""
+            self.denominator['text'] = ""
+            self.QuizzerSetRandomEquation()
         except ValueError:
             ErrorboxGeneratpr("Error: Please enter only integers for your answer.")
         except tk.TclError:
             ErrorboxGeneratpr("Error: Please select an operator.")
         
-        
+    def QuizzerSaveResultsToDatabase(self, points, operator):
+        # TODO: Actually save the results
+        print("Save results for username '{0}'".format(self.controller.username), points, operator)
 
 class ViewResultsWindow(tk.Frame):
 
