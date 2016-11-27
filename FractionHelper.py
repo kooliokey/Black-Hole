@@ -262,6 +262,7 @@ class SolverWindow(tk.Frame):
         self.operator_input.insert(2,"-")
         self.operator_input.insert(3,"*")
         self.operator_input.insert(4,"/")
+        self.operator_input.configure(exportselection=False) #This stops the unselection when clicking elsewhere
 
         # (y1/y2) second fraction 
         self.y1 = tk.Entry(self, width = 6)
@@ -339,8 +340,8 @@ class QuizzerWindow(tk.Frame):
         self.operator_input.insert(2,"-")
         self.operator_input.insert(3,"*")
         self.operator_input.insert(4,"/")
-        
-        self.operator_input.bind('<<ListboxSelect>>', self.QuizzerSelectedOperator)
+        self.operator_input.configure(exportselection=False) #This stops the unselection when clicking elsewhere
+        self.operator_input.bind('<<ListboxSelect>>', self.QuizzerSelectedOperator) #This allows us to detect when a selection is made to show fraction
         
         # Second fraction
         self.secondFraction = tk.Label(self, text="")
@@ -395,6 +396,8 @@ class QuizzerWindow(tk.Frame):
         
         self.firstFraction['text'] = self.frac1
         self.secondFraction['text'] = self.frac2
+        self.numerator['text'] = ""
+        self.denominator['text'] = ""
     
     def QuizzerSubmitAnswer(self):
         try:
@@ -438,12 +441,13 @@ class QuizzerWindow(tk.Frame):
         
     def QuizzerSaveResultsToDatabase(self, points, operator):
         # TODO: Actually save the results
+        sqlite_file = 'fshdb.sqlite'
         conn = sqlite3.connect(sqlite_file)
         c = conn.cursor()
         c.execute("INSERT INTO results (ID, Operator, Average) VALUES (?,?,?)", (self.controller.username, points, operator,))
         conn.commit()
         conn.close()
-        print("Save results for username '{0}'".format(self.controller.username), operator, points,)
+        print("Save results for username '{0}'".format(self.controller.username), operator, points)
 
 class RegisterWindow(tk.Frame):
 
