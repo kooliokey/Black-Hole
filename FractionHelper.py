@@ -3,6 +3,9 @@ import operator
 import sqlite3
 from fractions import Fraction
 import random
+import matplotlib.pyplot as plt
+import numpy as np
+
 
 # Set Operators for use in Solver window
 ops = {"+": operator.add, "-": operator.sub, "*": operator.mul, "/": operator.truediv}
@@ -37,17 +40,17 @@ class App(tk.Tk):
         c = conn.cursor()
         print ('Database connected')
         try:
-           c.execute('CREATE TABLE results (ID text, Addition real, Subtraction real, Multiplication real, Division real, Average real)')
+           c.execute('CREATE TABLE results (ID text, Operator text, Average real)')
         except sqlite3.OperationalError:
            print("Results table exists")
         try:
            c.execute('CREATE TABLE users (ID text PRIMARY KEY, Pass text)')
         except sqlite3.OperationalError:
-           print("Table already exists")
+           print("Table initialized")
         try:
            c.execute("INSERT INTO users (ID, Pass) VALUES ('admin', 'passmin')")
         except sqlite3.IntegrityError:
-           print("That ID already exists")
+           print("Admin verified")
 
         conn.commit()
         conn.close()
@@ -58,7 +61,7 @@ class App(tk.Tk):
         # Frame Dictionary holds (LoginWindow, MainWindow, SolverWindow, QuizzerWindow, ViewResultsWindow, RegisterWindow)
         self.frames = {}
 
-        for F in (LoginWindow, MainWindow, SolverWindow, QuizzerWindow, ViewResultsWindow, RegisterWindow):
+        for F in (LoginWindow, MainWindow, SolverWindow, QuizzerWindow, RegisterWindow):
             page_name = F.__name__
             frame = F(parent=container, controller=self)
             self.frames[page_name] = frame
@@ -158,13 +161,78 @@ class MainWindow(tk.Frame):
         Quizzerbutton = tk.Button(self, text="Quizzer", width=10,
         	command=lambda: controller.show_frame("QuizzerWindow"))
         Quizzerbutton.pack()
-        ViewResultsbutton = tk.Button(self, text="View Results", width=10,
-        	command=lambda: controller.show_frame("ViewResultsWindow"))
+        ViewResultsbutton = tk.Button(self, text="View Scores", width=10,
+        	command=self.graph)
         ViewResultsbutton.pack()
 
         # Exit button to get out of application
         Quit_button = tk.Button(self, text="Quit", width=10, command=self.quit)
         Quit_button.pack()
+
+    def graph(self):
+        objects = ('Addition', 'AddAll', 'Subtraction', 'SubAll', 'Multiplication', 'MultiAll', 'Division', 'DivAll', 'OverAll', 'OverAllAll')
+        horiz = np.arange(len(objects))
+        sumAdds, sumSubts, sumMults, sumDivs, sumOps = (0,0,0,0,0)
+        numAdds, numSubts, numMults, numDivs, numOps = (0,0,0,0,0)
+        sumAddsAll, sumSubtsAll, sumMultsAll, sumDivsAll, sumOpsAll = (0,0,0,0,0)
+        numAddsAll, numSubtsAll, numMultsAll, numDivsAll, numOpsAll = (0,0,0,0,0)
+        usr = self.controller.username
+        dbQuery = "SELECT * FROM results WHERE ID = '" + usr + "'"
+        sqlite_file = 'fshdb.sqlite'
+        conn = sqlite3.connect(sqlite_file)
+        d = conn.execute(dbQuery)
+        for row in d:
+            if (row[1] == '+'):
+                sumAdds += row[2]
+                numAdds += 1
+            elif (row[1] == '-'):
+                sumSubts += row[2]
+                numSubts += 1
+            elif (row[1] == '*'):
+                sumMults += row[2]
+                numMults += 1
+            elif (row[1] == '/'):
+                sumDivs += row[2]
+                numDivs += 1
+            sumOps += row[2]
+            numOps += 1
+        db2Query = 'SELECT * FROM results'
+        f = conn.execute(db2Query)
+        for row in f:
+            if (row[1] == '+'):
+                sumAddsAll += row[2]
+                numAddsAll += 1
+            elif (row[1] == '-'):
+                sumSubtsAll += row[2]
+                numSubtsAll += 1
+            elif (row[1] == '*'):
+                sumMultsAll += row[2]
+                numMultsAll += 1
+            elif (row[1] == '/'):
+                sumDivsAll += row[2]
+                numDivsAll += 1
+            sumOpsAll += row[2]
+            numOpsAll += 1
+       
+        conn.close()
+
+        if numAdds == 0: numAdds = 1
+        if numSubts == 0: numSubts = 1
+        if numMults == 0: numMults = 1
+        if numDivs == 0: numDivs = 1
+        if numOps == 0: numOps = 1
+        if numAddsAll == 0: numAddsAll = 1
+        if numSubtsAll == 0: numSubtsAll = 1
+        if numMultsAll == 0: numMultsAll = 1
+        if numDivsAll == 0: numDivsAll = 1
+        if numOpsAll == 0: numOpsAll = 1
+
+        scores = [sumAdds / numAdds, sumAddsAll/numAddsAll, sumSubts / numSubts, sumSubtsAll / numSubtsAll, sumMults / numMults, sumMultsAll / numMultsAll, sumDivs / numDivs, sumDivsAll / numDivsAll, sumOps / numOps, sumOpsAll / numOpsAll]
+        plt.bar(horiz, scores, align='center', alpha=0.5)
+        plt.xticks(horiz, objects, rotation='vertical')
+        plt.ylabel('Average')
+        plt.title('Quiz Averages')
+        plt.show()        
 
 class SolverWindow(tk.Frame):
 
@@ -365,23 +433,17 @@ class QuizzerWindow(tk.Frame):
             ErrorboxGeneratpr("Error: Please enter only integers for your answer.")
         except tk.TclError:
             ErrorboxGeneratpr("Error: Please select an operator.")
+        self.denominator.delete(0, 'end')
+        self.numerator.delete(0, 'end')
         
     def QuizzerSaveResultsToDatabase(self, points, operator):
         # TODO: Actually save the results
-        print("Save results for username '{0}'".format(self.controller.username), points, operator)
-
-class ViewResultsWindow(tk.Frame):
-
-    def __init__(self, parent, controller):
-        tk.Frame.__init__(self, parent)
-        self.controller = controller
-
-        #TODO using (controller.username) Show table of the users results.
-        label = tk.Label(self, text="ViewResultsWindow")
-        label.pack(side="top", fill="x", pady=10)
-        button = tk.Button(self, text="MainWindow",
-                           command=lambda: controller.show_frame("MainWindow"))
-        button.pack()
+        conn = sqlite3.connect(sqlite_file)
+        c = conn.cursor()
+        c.execute("INSERT INTO results (ID, Operator, Average) VALUES (?,?,?)", (self.controller.username, points, operator,))
+        conn.commit()
+        conn.close()
+        print("Save results for username '{0}'".format(self.controller.username), operator, points,)
 
 class RegisterWindow(tk.Frame):
 
