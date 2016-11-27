@@ -272,6 +272,8 @@ class QuizzerWindow(tk.Frame):
         self.operator_input.insert(3,"*")
         self.operator_input.insert(4,"/")
         
+        self.operator_input.bind('<<ListboxSelect>>', self.QuizzerSelectedOperator)
+        
         # Second fraction
         self.secondFraction = tk.Label(self, text="")
         self.secondFraction.grid(row=2, column=2, in_=mainFrame)
@@ -309,7 +311,7 @@ class QuizzerWindow(tk.Frame):
                            command=lambda: controller.show_frame("MainWindow"))
         button.pack()
         
-        #### Get our fractions
+    def QuizzerSelectedOperator(self,e):
         self.QuizzerSetRandomEquation()
         
     def QuizzerSetRandomEquation(self):
